@@ -161,7 +161,7 @@ const MestrandoPage = (() => {
                 App.navigateTo('nova-campanha');
                 break;
             case 'action-new-session':
-                console.log('[Mestrando] Nova Sessão - em construção');
+                App.navigateTo('nova-sessao');
                 break;
             case 'action-create-npc':
                 console.log('[Mestrando] Criar NPC - em construção');
