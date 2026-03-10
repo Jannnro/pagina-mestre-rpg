@@ -1,0 +1,244 @@
+/* =========================================
+   MESTRANDO PAGE STYLES
+   ========================================= */
+
+/* --- Page Hero --- */
+.mestrando-hero {
+    position: relative;
+    text-align: center;
+    padding: var(--space-12) var(--space-8);
+    margin-bottom: var(--space-10);
+    background:
+        radial-gradient(ellipse at center, rgba(212, 168, 67, 0.05) 0%, transparent 60%),
+        var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    animation: fade-in 0.6s ease forwards;
+}
+
+.mestrando-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(
+        from 0deg at 50% 50%,
+        transparent 0deg,
+        rgba(212, 168, 67, 0.03) 90deg,
+        transparent 180deg,
+        rgba(139, 92, 246, 0.03) 270deg,
+        transparent 360deg
+    );
+    animation: slow-rotate 30s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes slow-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.mestrando-hero__icon {
+    font-size: 3.5rem;
+    margin-bottom: var(--space-4);
+    display: inline-block;
+    animation: pulse-glow 3s ease-in-out infinite;
+    position: relative;
+    z-index: 1;
+}
+
+.mestrando-hero__title {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: 900;
+    margin-bottom: var(--space-3);
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(135deg, var(--color-accent-gold-light), var(--color-accent-gold), var(--color-accent-gold-dark));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.mestrando-hero__subtitle {
+    font-size: var(--text-lg);
+    color: var(--color-text-secondary);
+    max-width: 550px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+/* --- Dashboard Stats --- */
+.mestrando-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-10);
+}
+
+.mestrando-stats .card {
+    text-align: center;
+    animation: fade-in 0.5s ease forwards;
+    animation-delay: calc(var(--i, 0) * 100ms);
+    opacity: 0;
+}
+
+/* --- Quick Actions --- */
+.mestrando-actions {
+    margin-bottom: var(--space-10);
+}
+
+.mestrando-actions__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+}
+
+.mestrando-action-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--space-8) var(--space-6);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-base);
+    cursor: pointer;
+    animation: fade-in 0.5s ease forwards;
+    animation-delay: calc(var(--i, 0) * 120ms);
+    opacity: 0;
+    overflow: hidden;
+}
+
+.mestrando-action-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(212, 168, 67, 0.04), transparent);
+    opacity: 0;
+    transition: opacity var(--transition-base);
+}
+
+.mestrando-action-card:hover {
+    border-color: var(--color-border-hover);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-glow-gold);
+}
+
+.mestrando-action-card:hover::before {
+    opacity: 1;
+}
+
+.mestrando-action-card__icon {
+    font-size: 2.5rem;
+    margin-bottom: var(--space-4);
+    position: relative;
+    z-index: 1;
+}
+
+.mestrando-action-card__title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--color-text-heading);
+    margin-bottom: var(--space-2);
+    position: relative;
+    z-index: 1;
+}
+
+.mestrando-action-card__desc {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    position: relative;
+    z-index: 1;
+}
+
+/* --- Recent / Activity --- */
+.mestrando-recent {
+    margin-bottom: var(--space-10);
+}
+
+.mestrando-recent__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.mestrando-recent__item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    animation: fade-in 0.4s ease forwards;
+    animation-delay: calc(var(--i, 0) * 80ms);
+    opacity: 0;
+}
+
+.mestrando-recent__item:hover {
+    border-color: var(--color-border-hover);
+    background: var(--color-bg-card-hover);
+}
+
+.mestrando-recent__item-icon {
+    font-size: var(--text-xl);
+    flex-shrink: 0;
+}
+
+.mestrando-recent__item-info {
+    flex: 1;
+}
+
+.mestrando-recent__item-title {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--color-text-heading);
+}
+
+.mestrando-recent__item-meta {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+}
+
+.mestrando-recent__item-badge {
+    flex-shrink: 0;
+}
+
+/* --- Responsive --- */
+@media (max-width: 1024px) {
+    .mestrando-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .mestrando-actions__grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .mestrando-hero {
+        padding: var(--space-8) var(--space-4);
+    }
+
+    .mestrando-hero__title {
+        font-size: var(--text-2xl);
+    }
+
+    .mestrando-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .mestrando-actions__grid {
+        grid-template-columns: 1fr;
+    }
+}

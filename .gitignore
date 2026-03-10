@@ -1,0 +1,16 @@
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor folders
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependencies (se usar no futuro)
+node_modules/
+
+# Logs
+*.log

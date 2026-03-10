@@ -1,0 +1,693 @@
+/**
+ * nova-campanha.js - Nova Campanha Page Module
+ * Handles the campaign creation/editing page with tabs for
+ * World, Players, NPCs, Class Sheets, and Weapon Sheets.
+ */
+
+const NovaCampanhaPage = (() => {
+    'use strict';
+
+    const mainContent = document.getElementById('main-content');
+
+    // --- Campaign State ---
+    let campaignData = {
+        name: '',
+        world: '',
+        players: [],
+        npcs: [],
+        classes: [],
+        weapons: [],
+    };
+
+    let activeTab = 'mundo';
+
+    // --- Tabs Config ---
+    const tabs = [
+        { id: 'mundo',    icon: '🌍', label: 'Mundo',            countKey: null },
+        { id: 'jogadores', icon: '🎭', label: 'Jogadores',       countKey: 'players' },
+        { id: 'npcs',     icon: '🧙', label: 'NPCs Criados',     countKey: 'npcs' },
+        { id: 'classes',  icon: '🛡️', label: 'Fichas de Classes', countKey: 'classes' },
+        { id: 'armas',    icon: '⚔️', label: 'Fichas de Armas',   countKey: 'weapons' },
+    ];
+
+    // ==============================
+    //  MAIN TEMPLATE
+    // ==============================
+    function getTemplate() {
+        return `
+            <!-- Page Header -->
+            <div class="campanha-header">
+                <button class="campanha-header__back" id="btn-back-mestrando" title="Voltar ao Mestrando">←</button>
+                <div class="campanha-header__info">
+                    <h2 class="campanha-header__title">Nova Campanha</h2>
+                    <p class="campanha-header__subtitle">Configure os detalhes da sua nova aventura épica.</p>
+                </div>
+            </div>
+
+            <!-- Campaign Name -->
+            <div class="campanha-name-section">
+                <input
+                    type="text"
+                    id="campaign-name-input"
+                    class="campanha-name-input"
+                    placeholder="Nome da Campanha..."
+                    maxlength="100"
+                    value="${escapeHtml(campaignData.name)}"
+                />
+            </div>
+
+            <!-- Tabs -->
+            <div class="campanha-tabs" id="campanha-tabs">
+                ${tabs.map(tab => `
+                    <button class="campanha-tab ${tab.id === activeTab ? 'campanha-tab--active' : ''}"
+                            data-tab="${tab.id}" id="tab-${tab.id}">
+                        <span class="campanha-tab__icon">${tab.icon}</span>
+                        ${tab.label}
+                        ${tab.countKey ? `<span class="campanha-tab__count">${campaignData[tab.countKey].length}</span>` : ''}
+                    </button>
+                `).join('')}
+            </div>
+
+            <!-- Tab Content -->
+            <div class="campanha-content" id="campanha-content">
+                ${getTabContent(activeTab)}
+            </div>
+        `;
+    }
+
+    // ==============================
+    //  TAB CONTENT TEMPLATES
+    // ==============================
+    function getTabContent(tabId) {
+        switch (tabId) {
+            case 'mundo':     return getMundoTemplate();
+            case 'jogadores': return getListTemplate('jogadores', 'Jogadores', '🎭', 'player', campaignData.players);
+            case 'npcs':      return getListTemplate('npcs', 'NPCs Criados', '🧙', 'npc', campaignData.npcs);
+            case 'classes':   return getClassesTemplate();
+            case 'armas':     return getListTemplate('armas', 'Fichas de Armas', '⚔️', 'weapon', campaignData.weapons);
+            default:          return '';
+        }
+    }
+
+    // --- Mundo (World) Tab ---
+    function getMundoTemplate() {
+        return `
+            <div class="mundo-section">
+                <div class="section-header">
+                    <h3 class="section-header__title">Sobre o Mundo</h3>
+                    <p class="section-header__subtitle">Descreva o cenário, a história e as regras do seu mundo.</p>
+                </div>
+
+                <div class="mundo-editor">
+                    <textarea
+                        id="world-textarea"
+                        class="mundo-editor__textarea"
+                        placeholder="Descreva o mundo da sua campanha aqui...&#10;&#10;Exemplo: Em um continente devastado por guerras ancestrais, cinco reinos disputam o controle de artefatos mágicos que podem alterar o equilíbrio do poder..."
+                        maxlength="10000"
+                    >${escapeHtml(campaignData.world)}</textarea>
+                    <span class="mundo-editor__count" id="world-char-count">${campaignData.world.length}/10000</span>
+                </div>
+
+                <div class="mundo-tips">
+                    <div class="mundo-tip">
+                        <div class="mundo-tip__icon">🗺️</div>
+                        <div class="mundo-tip__title">Geografia</div>
+                        <div class="mundo-tip__desc">Descreva os continentes, reinos, cidades e locais importantes.</div>
+                    </div>
+                    <div class="mundo-tip">
+                        <div class="mundo-tip__icon">📖</div>
+                        <div class="mundo-tip__title">História</div>
+                        <div class="mundo-tip__desc">Conte os eventos passados que moldaram o mundo atual.</div>
+                    </div>
+                    <div class="mundo-tip">
+                        <div class="mundo-tip__icon">⚡</div>
+                        <div class="mundo-tip__title">Regras & Magia</div>
+                        <div class="mundo-tip__desc">Defina o sistema de magia, divindades e leis do universo.</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- Classes (Fichas de Classes) Tab ---
+    function getClassesTemplate() {
+        const items = campaignData.classes;
+
+        if (items.length === 0) {
+            return `
+                <div class="list-section">
+                    <div class="list-section__toolbar">
+                        <div class="section-header" style="margin-bottom:0">
+                            <h3 class="section-header__title">Fichas de Classes</h3>
+                        </div>
+                        <button class="btn btn--primary" id="btn-add-classes" data-type="classes">
+                            + Adicionar Classe
+                        </button>
+                    </div>
+                    <div class="empty-state">
+                        <div class="empty-state__icon">🛡️</div>
+                        <h4 class="empty-state__title">Nenhuma ficha de classe</h4>
+                        <p class="empty-state__desc">Crie fichas detalhadas com atributos para as classes disponíveis.</p>
+                        <button class="btn btn--primary" data-type="classes" data-action="add">
+                            + Adicionar Classe
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="list-section">
+                <div class="list-section__toolbar">
+                    <div class="list-section__search">
+                        <span class="list-section__search-icon">🔍</span>
+                        <input type="text" class="list-section__search-input"
+                               placeholder="Buscar fichas de classes..."
+                               id="search-classes" />
+                    </div>
+                    <button class="btn btn--primary" id="btn-add-classes" data-type="classes">
+                        + Adicionar Classe
+                    </button>
+                </div>
+                <div class="items-grid items-grid--classes" id="grid-classes">
+                    ${items.map((item, index) => getClassCard(item, index)).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function getClassCard(item, index) {
+        const attrs = [
+            { key: 'forca',        label: 'Força',         icon: '💪' },
+            { key: 'destreza',     label: 'Destreza',      icon: '🏹' },
+            { key: 'inteligencia', label: 'Inteligência',  icon: '📖' },
+            { key: 'presenca',     label: 'Presença',      icon: '✨' },
+            { key: 'carisma',      label: 'Carisma',       icon: '💬' },
+            { key: 'constituicao', label: 'Constituição',  icon: '🛡️' },
+        ];
+
+        return `
+            <div class="class-card item-card" data-index="${index}" data-type="classes">
+                <div class="class-card__header">
+                    <div class="class-card__icon">🛡️</div>
+                    <div class="class-card__title-area">
+                        <div class="class-card__name">${escapeHtml(item.name || 'Sem nome')}</div>
+                        <span class="badge badge--emerald">Classe</span>
+                    </div>
+                </div>
+
+                <div class="class-card__vitals">
+                    <div class="class-card__vital class-card__vital--hp">
+                        <span class="class-card__vital-icon">❤️</span>
+                        <span class="class-card__vital-label">HP</span>
+                        <span class="class-card__vital-value">${escapeHtml(item.hp || '0')}/${escapeHtml(item.hpMax || '0')}</span>
+                    </div>
+                    <div class="class-card__vital class-card__vital--mana">
+                        <span class="class-card__vital-icon">💎</span>
+                        <span class="class-card__vital-label">Mana</span>
+                        <span class="class-card__vital-value">${escapeHtml(item.mana || '0')}/${escapeHtml(item.manaMax || '0')}</span>
+                    </div>
+                </div>
+
+                <div class="class-card__stats">
+                    ${attrs.map(attr => `
+                        <div class="class-card__stat">
+                            <span class="class-card__stat-icon">${attr.icon}</span>
+                            <span class="class-card__stat-label">${attr.label}</span>
+                            <span class="class-card__stat-value ${getStatColor(item[attr.key])}">
+                                ${formatStat(item[attr.key])}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="item-card__footer">
+                    <button class="item-card__action" data-action="edit" data-type="classes" data-index="${index}">✏️ Editar</button>
+                    <button class="item-card__action item-card__action--delete" data-action="delete" data-type="classes" data-index="${index}">🗑️ Remover</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function formatStat(value) {
+        if (!value && value !== 0) return '+0';
+        const num = parseInt(value, 10);
+        if (isNaN(num)) return escapeHtml(String(value));
+        return num >= 0 ? `+${num}` : `${num}`;
+    }
+
+    function getStatColor(value) {
+        const num = parseInt(value, 10);
+        if (isNaN(num)) return '';
+        if (num >= 5) return 'stat-high';
+        if (num >= 3) return 'stat-mid';
+        return 'stat-low';
+    }
+
+    // --- Generic List Tab (Players, NPCs, Weapons) ---
+    function getListTemplate(type, title, icon, avatarType, items) {
+        const configs = {
+            jogadores: {
+                addLabel: 'Adicionar Jogador',
+                emptyIcon: '🎭',
+                emptyTitle: 'Nenhum jogador adicionado',
+                emptyDesc: 'Adicione os jogadores que participarão desta campanha.',
+                fields: [
+                    { key: 'name', label: 'Nome do Jogador', type: 'text', placeholder: 'Ex: Pedro' },
+                    { key: 'character', label: 'Nome do Personagem', type: 'text', placeholder: 'Ex: Thorin Escudo de Ferro' },
+                    { key: 'class', label: 'Classe', type: 'text', placeholder: 'Ex: Guerreiro' },
+                    { key: 'level', label: 'Nível', type: 'number', placeholder: '1' },
+                ],
+            },
+            npcs: {
+                addLabel: 'Criar NPC',
+                emptyIcon: '🧙',
+                emptyTitle: 'Nenhum NPC criado',
+                emptyDesc: 'Crie NPCs para enriquecer a narrativa da campanha.',
+                fields: [
+                    { key: 'name', label: 'Nome do NPC', type: 'text', placeholder: 'Ex: Elara, a Sábia' },
+                    { key: 'role', label: 'Papel', type: 'text', placeholder: 'Ex: Comerciante, Vilão, Aliado...' },
+                    { key: 'location', label: 'Localização', type: 'text', placeholder: 'Ex: Taverna do Dragão Dourado' },
+                    { key: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Aparência, personalidade, motivações...' },
+                ],
+            },
+
+            armas: {
+                addLabel: 'Adicionar Arma',
+                emptyIcon: '⚔️',
+                emptyTitle: 'Nenhuma ficha de arma',
+                emptyDesc: 'Crie fichas para as armas do seu mundo.',
+                fields: [
+                    { key: 'name', label: 'Nome da Arma', type: 'text', placeholder: 'Ex: Espada Longa Élfica' },
+                    { key: 'damage', label: 'Dano', type: 'text', placeholder: 'Ex: 1d8 + 2 cortante' },
+                    { key: 'weight', label: 'Peso', type: 'text', placeholder: 'Ex: 1.5 kg' },
+                    { key: 'properties', label: 'Propriedades', type: 'text', placeholder: 'Ex: Versátil, Mágica' },
+                    { key: 'description', label: 'Descrição', type: 'textarea', placeholder: 'História, efeitos especiais...' },
+                ],
+            },
+        };
+
+        const config = configs[type];
+
+        if (items.length === 0) {
+            return `
+                <div class="list-section">
+                    <div class="list-section__toolbar">
+                        <div class="section-header" style="margin-bottom:0">
+                            <h3 class="section-header__title">${title}</h3>
+                        </div>
+                        <button class="btn btn--primary" id="btn-add-${type}" data-type="${type}">
+                            + ${config.addLabel}
+                        </button>
+                    </div>
+                    <div class="empty-state">
+                        <div class="empty-state__icon">${config.emptyIcon}</div>
+                        <h4 class="empty-state__title">${config.emptyTitle}</h4>
+                        <p class="empty-state__desc">${config.emptyDesc}</p>
+                        <button class="btn btn--primary" data-type="${type}" data-action="add">
+                            + ${config.addLabel}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="list-section">
+                <div class="list-section__toolbar">
+                    <div class="list-section__search">
+                        <span class="list-section__search-icon">🔍</span>
+                        <input type="text" class="list-section__search-input"
+                               placeholder="Buscar ${title.toLowerCase()}..."
+                               id="search-${type}" />
+                    </div>
+                    <button class="btn btn--primary" id="btn-add-${type}" data-type="${type}">
+                        + ${config.addLabel}
+                    </button>
+                </div>
+                <div class="items-grid" id="grid-${type}">
+                    ${items.map((item, index) => getItemCard(item, index, type, avatarType)).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    // --- Item Card ---
+    function getItemCard(item, index, type, avatarType) {
+        const iconMap = {
+            player: '🎭',
+            npc: '🧙',
+            class: '🛡️',
+            weapon: '⚔️',
+        };
+
+        const detailMap = {
+            player: item.character ? `${item.character} — ${item.class || 'Sem classe'} Nv.${item.level || 1}` : '',
+            npc: item.role ? `${item.role}${item.location ? ' • ' + item.location : ''}` : '',
+            class: item.hitDice ? `Dado de Vida: ${item.hitDice}${item.primaryAbility ? ' • ' + item.primaryAbility : ''}` : '',
+            weapon: item.damage ? `Dano: ${item.damage}${item.weight ? ' • ' + item.weight : ''}` : '',
+        };
+
+        const badgeMap = {
+            player: { class: 'badge--purple', label: 'Jogador' },
+            npc: { class: 'badge--gold', label: 'NPC' },
+            class: { class: 'badge--emerald', label: 'Classe' },
+            weapon: { class: 'badge--crimson', label: 'Arma' },
+        };
+
+        const badge = badgeMap[avatarType];
+
+        return `
+            <div class="item-card" data-index="${index}" data-type="${type}">
+                <div class="item-card__avatar item-card__avatar--${avatarType}">
+                    ${iconMap[avatarType]}
+                </div>
+                <div class="item-card__body">
+                    <div class="item-card__name">${escapeHtml(item.name || 'Sem nome')}</div>
+                    <div class="item-card__detail">${escapeHtml(detailMap[avatarType] || '')}</div>
+                    <div class="item-card__tags">
+                        <span class="badge ${badge.class}">${badge.label}</span>
+                        ${item.properties ? `<span class="badge badge--gold">${escapeHtml(item.properties)}</span>` : ''}
+                    </div>
+                </div>
+                <div class="item-card__footer">
+                    <button class="item-card__action" data-action="edit" data-type="${type}" data-index="${index}">✏️ Editar</button>
+                    <button class="item-card__action item-card__action--delete" data-action="delete" data-type="${type}" data-index="${index}">🗑️ Remover</button>
+                </div>
+            </div>
+        `;
+    }
+
+    // ==============================
+    //  MODAL TEMPLATE
+    // ==============================
+    function getModalTemplate(title, type, fields, editIndex = null) {
+        const isEdit = editIndex !== null;
+        const existingData = isEdit ? getItemsArray(type)[editIndex] : {};
+
+        return `
+            <div class="modal-overlay" id="modal-overlay">
+                <div class="modal">
+                    <div class="modal__header">
+                        <h3 class="modal__title">${isEdit ? 'Editar' : 'Adicionar'} ${title}</h3>
+                        <button class="modal__close" id="modal-close">✕</button>
+                    </div>
+                    <form id="modal-form" data-type="${type}" data-index="${editIndex !== null ? editIndex : ''}">
+                        ${fields.map(field => `
+                            <div class="form-group">
+                                <label class="form-label" for="field-${field.key}">${field.label}</label>
+                                ${field.type === 'textarea'
+                                    ? `<textarea id="field-${field.key}" class="form-input" rows="4"
+                                          placeholder="${field.placeholder}"
+                                          style="resize:vertical; min-height:100px">${escapeHtml(existingData[field.key] || '')}</textarea>`
+                                    : `<input id="field-${field.key}" class="form-input"
+                                          type="${field.type}" placeholder="${field.placeholder}"
+                                          value="${escapeHtml(existingData[field.key] || '')}" />`
+                                }
+                            </div>
+                        `).join('')}
+                        <div class="modal__actions">
+                            <button type="button" class="btn btn--secondary" id="modal-cancel">Cancelar</button>
+                            <button type="submit" class="btn btn--primary">${isEdit ? 'Salvar' : 'Adicionar'}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+    }
+
+    // ==============================
+    //  RENDER & EVENT BINDING
+    // ==============================
+    function render() {
+        if (!mainContent) return;
+        mainContent.innerHTML = getTemplate();
+        bindEvents();
+    }
+
+    function renderTabContent() {
+        const contentEl = document.getElementById('campanha-content');
+        if (contentEl) {
+            contentEl.innerHTML = getTabContent(activeTab);
+            bindContentEvents();
+        }
+        updateTabCounts();
+    }
+
+    function updateTabCounts() {
+        tabs.forEach(tab => {
+            if (tab.countKey) {
+                const countEl = document.querySelector(`#tab-${tab.id} .campanha-tab__count`);
+                if (countEl) {
+                    countEl.textContent = campaignData[tab.countKey].length;
+                }
+            }
+        });
+    }
+
+    function bindEvents() {
+        // Back button
+        const backBtn = document.getElementById('btn-back-mestrando');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => App.navigateTo('mestrando'));
+        }
+
+        // Campaign name
+        const nameInput = document.getElementById('campaign-name-input');
+        if (nameInput) {
+            nameInput.addEventListener('input', (e) => {
+                campaignData.name = e.target.value;
+            });
+        }
+
+        // Tabs
+        const tabButtons = document.querySelectorAll('.campanha-tab');
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                activeTab = btn.dataset.tab;
+                tabButtons.forEach(b => b.classList.toggle('campanha-tab--active', b === btn));
+                renderTabContent();
+            });
+        });
+
+        bindContentEvents();
+    }
+
+    function bindContentEvents() {
+        // World textarea
+        const worldTA = document.getElementById('world-textarea');
+        if (worldTA) {
+            worldTA.addEventListener('input', (e) => {
+                campaignData.world = e.target.value;
+                const countEl = document.getElementById('world-char-count');
+                if (countEl) countEl.textContent = `${e.target.value.length}/10000`;
+            });
+        }
+
+        // Add buttons
+        document.querySelectorAll('[data-action="add"], [id^="btn-add-"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.type;
+                openModal(type);
+            });
+        });
+
+        // Edit buttons
+        document.querySelectorAll('[data-action="edit"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.type;
+                const index = parseInt(btn.dataset.index, 10);
+                openModal(type, index);
+            });
+        });
+
+        // Delete buttons
+        document.querySelectorAll('[data-action="delete"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.type;
+                const index = parseInt(btn.dataset.index, 10);
+                deleteItem(type, index);
+            });
+        });
+
+        // Search
+        document.querySelectorAll('[id^="search-"]').forEach(input => {
+            input.addEventListener('input', App.debounce((e) => {
+                filterItems(e.target.id.replace('search-', ''), e.target.value);
+            }, 200));
+        });
+    }
+
+    // ==============================
+    //  MODAL LOGIC
+    // ==============================
+    function getFieldsConfig(type) {
+        const configs = {
+            jogadores: {
+                title: 'Jogador',
+                fields: [
+                    { key: 'name', label: 'Nome do Jogador', type: 'text', placeholder: 'Ex: Pedro' },
+                    { key: 'character', label: 'Nome do Personagem', type: 'text', placeholder: 'Ex: Thorin Escudo de Ferro' },
+                    { key: 'class', label: 'Classe', type: 'text', placeholder: 'Ex: Guerreiro' },
+                    { key: 'level', label: 'Nível', type: 'number', placeholder: '1' },
+                ],
+            },
+            npcs: {
+                title: 'NPC',
+                fields: [
+                    { key: 'name', label: 'Nome do NPC', type: 'text', placeholder: 'Ex: Elara, a Sábia' },
+                    { key: 'role', label: 'Papel', type: 'text', placeholder: 'Ex: Comerciante, Vilão, Aliado...' },
+                    { key: 'location', label: 'Localização', type: 'text', placeholder: 'Ex: Taverna do Dragão Dourado' },
+                    { key: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Aparência, personalidade, motivações...' },
+                ],
+            },
+            classes: {
+                title: 'Classe',
+                fields: [
+                    { key: 'name', label: 'Nome da Classe', type: 'text', placeholder: 'Ex: Guerreiro' },
+                    { key: 'hp', label: 'HP (atual)', type: 'number', placeholder: 'Ex: 80' },
+                    { key: 'hpMax', label: 'HP (máximo)', type: 'number', placeholder: 'Ex: 80' },
+                    { key: 'mana', label: 'Mana (atual)', type: 'number', placeholder: 'Ex: 10' },
+                    { key: 'manaMax', label: 'Mana (máximo)', type: 'number', placeholder: 'Ex: 10' },
+                    { key: 'forca', label: 'Força', type: 'number', placeholder: 'Ex: 6' },
+                    { key: 'destreza', label: 'Destreza', type: 'number', placeholder: 'Ex: 4' },
+                    { key: 'inteligencia', label: 'Inteligência', type: 'number', placeholder: 'Ex: 1' },
+                    { key: 'presenca', label: 'Presença', type: 'number', placeholder: 'Ex: 4' },
+                    { key: 'carisma', label: 'Carisma', type: 'number', placeholder: 'Ex: 1' },
+                    { key: 'constituicao', label: 'Constituição', type: 'number', placeholder: 'Ex: 5' },
+                ],
+            },
+            armas: {
+                title: 'Arma',
+                fields: [
+                    { key: 'name', label: 'Nome da Arma', type: 'text', placeholder: 'Ex: Espada Longa Élfica' },
+                    { key: 'damage', label: 'Dano', type: 'text', placeholder: 'Ex: 1d8 + 2 cortante' },
+                    { key: 'weight', label: 'Peso', type: 'text', placeholder: 'Ex: 1.5 kg' },
+                    { key: 'properties', label: 'Propriedades', type: 'text', placeholder: 'Ex: Versátil, Mágica' },
+                    { key: 'description', label: 'Descrição', type: 'textarea', placeholder: 'História, efeitos especiais...' },
+                ],
+            },
+        };
+        return configs[type];
+    }
+
+    function openModal(type, editIndex = null) {
+        const config = getFieldsConfig(type);
+        if (!config) return;
+
+        // Insert modal into DOM
+        const modalHtml = getModalTemplate(config.title, type, config.fields, editIndex);
+        const container = document.createElement('div');
+        container.id = 'modal-container';
+        container.innerHTML = modalHtml;
+        document.body.appendChild(container);
+
+        // Bind modal events
+        const overlay = document.getElementById('modal-overlay');
+        const closeBtn = document.getElementById('modal-close');
+        const cancelBtn = document.getElementById('modal-cancel');
+        const form = document.getElementById('modal-form');
+
+        const closeModal = () => {
+            container.remove();
+        };
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal();
+        });
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formType = form.dataset.type;
+            const formIndex = form.dataset.index;
+            const fieldsConfig = getFieldsConfig(formType);
+            const data = {};
+
+            fieldsConfig.fields.forEach(field => {
+                const el = document.getElementById(`field-${field.key}`);
+                if (el) data[field.key] = el.value.trim();
+            });
+
+            if (!data.name) {
+                // Highlight name field
+                const nameField = document.getElementById('field-name');
+                if (nameField) {
+                    nameField.style.borderColor = 'var(--color-accent-crimson)';
+                    nameField.focus();
+                }
+                return;
+            }
+
+            if (formIndex !== '') {
+                // Edit
+                const items = getItemsArray(formType);
+                items[parseInt(formIndex, 10)] = { ...items[parseInt(formIndex, 10)], ...data };
+            } else {
+                // Add
+                getItemsArray(formType).push(data);
+            }
+
+            closeModal();
+            renderTabContent();
+        });
+
+        // Focus first field
+        const firstField = document.getElementById(`field-${config.fields[0].key}`);
+        if (firstField) setTimeout(() => firstField.focus(), 100);
+    }
+
+    // ==============================
+    //  DATA HELPERS
+    // ==============================
+    function getItemsArray(type) {
+        const map = {
+            jogadores: campaignData.players,
+            npcs: campaignData.npcs,
+            classes: campaignData.classes,
+            armas: campaignData.weapons,
+        };
+        return map[type];
+    }
+
+    function deleteItem(type, index) {
+        const items = getItemsArray(type);
+        if (index >= 0 && index < items.length) {
+            items.splice(index, 1);
+            renderTabContent();
+        }
+    }
+
+    function filterItems(type, query) {
+        const grid = document.getElementById(`grid-${type}`);
+        if (!grid) return;
+        const cards = grid.querySelectorAll('.item-card');
+        const q = query.toLowerCase();
+        cards.forEach(card => {
+            const name = card.querySelector('.item-card__name')?.textContent.toLowerCase() || '';
+            const detail = card.querySelector('.item-card__detail')?.textContent.toLowerCase() || '';
+            const visible = name.includes(q) || detail.includes(q);
+            card.style.display = visible ? '' : 'none';
+        });
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return String(text).replace(/[&<>"']/g, c => map[c]);
+    }
+
+    // ==============================
+    //  PAGE LIFECYCLE
+    // ==============================
+    document.addEventListener('page:load', (e) => {
+        if (e.detail.page === 'nova-campanha') {
+            render();
+        }
+    });
+
+    return {
+        render,
+    };
+})();

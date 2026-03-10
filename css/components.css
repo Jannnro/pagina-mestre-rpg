@@ -1,0 +1,247 @@
+/* =========================================
+   REUSABLE COMPONENTS - Página do Mestre RPG
+   ========================================= */
+
+/* --- Cards --- */
+.card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    transition: all var(--transition-base);
+    backdrop-filter: blur(8px);
+}
+
+.card:hover {
+    background: var(--color-bg-card-hover);
+    border-color: var(--color-border-hover);
+    box-shadow: var(--shadow-glow-gold);
+    transform: translateY(-2px);
+}
+
+.card__header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.card__icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-xl);
+    background: linear-gradient(135deg, var(--color-accent-gold-dark), var(--color-accent-gold));
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-glow-gold);
+}
+
+.card__title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--color-text-heading);
+}
+
+.card__body {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+}
+
+/* --- Buttons --- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+    letter-spacing: 0.02em;
+    cursor: pointer;
+}
+
+.btn--primary {
+    background: linear-gradient(135deg, var(--color-accent-gold-dark), var(--color-accent-gold));
+    color: var(--color-bg-primary);
+    box-shadow: var(--shadow-glow-gold);
+}
+
+.btn--primary:hover {
+    background: linear-gradient(135deg, var(--color-accent-gold), var(--color-accent-gold-light));
+    box-shadow: 0 0 30px rgba(212, 168, 67, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn--secondary {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+}
+
+.btn--secondary:hover {
+    border-color: var(--color-border-hover);
+    background: var(--color-bg-card-hover);
+}
+
+.btn--ghost {
+    color: var(--color-accent-gold);
+    background: transparent;
+}
+
+.btn--ghost:hover {
+    background: rgba(212, 168, 67, 0.08);
+}
+
+.btn--danger {
+    background: linear-gradient(135deg, #991b1b, var(--color-accent-crimson));
+    color: #fff;
+}
+
+.btn--danger:hover {
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+    transform: translateY(-1px);
+}
+
+/* --- Badges --- */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    border-radius: var(--radius-full);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.badge--gold {
+    background: rgba(212, 168, 67, 0.15);
+    color: var(--color-accent-gold-light);
+    border: 1px solid rgba(212, 168, 67, 0.25);
+}
+
+.badge--purple {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--color-accent-purple-light);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.badge--emerald {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.badge--crimson {
+    background: rgba(220, 38, 38, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+/* --- Section Header --- */
+.section-header {
+    margin-bottom: var(--space-8);
+}
+
+.section-header__title {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    color: var(--color-accent-gold);
+    margin-bottom: var(--space-2);
+    background: linear-gradient(135deg, var(--color-accent-gold-light), var(--color-accent-gold), var(--color-accent-gold-dark));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.section-header__subtitle {
+    font-size: var(--text-base);
+    color: var(--color-text-secondary);
+    max-width: 600px;
+}
+
+/* --- Divider --- */
+.divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-border-hover), transparent);
+    margin: var(--space-8) 0;
+}
+
+/* --- Form Elements --- */
+.form-group {
+    margin-bottom: var(--space-5);
+}
+
+.form-label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-2);
+}
+
+.form-input {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+    transition: all var(--transition-base);
+}
+
+.form-input:focus {
+    border-color: var(--color-accent-gold);
+    box-shadow: 0 0 0 3px rgba(212, 168, 67, 0.1);
+}
+
+.form-input::placeholder {
+    color: var(--color-text-muted);
+}
+
+/* --- Grid Layouts --- */
+.grid {
+    display: grid;
+    gap: var(--space-6);
+}
+
+.grid--2 { grid-template-columns: repeat(2, 1fr); }
+.grid--3 { grid-template-columns: repeat(3, 1fr); }
+.grid--4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 1024px) {
+    .grid--3, .grid--4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+    .grid--2, .grid--3, .grid--4 { grid-template-columns: 1fr; }
+}
+
+/* --- Stat Block --- */
+.stat {
+    text-align: center;
+    padding: var(--space-4);
+}
+
+.stat__value {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    color: var(--color-accent-gold);
+    line-height: 1;
+    margin-bottom: var(--space-1);
+}
+
+.stat__label {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
