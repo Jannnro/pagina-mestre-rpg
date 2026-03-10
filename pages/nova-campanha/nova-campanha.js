@@ -81,12 +81,140 @@ const NovaCampanhaPage = (() => {
     function getTabContent(tabId) {
         switch (tabId) {
             case 'mundo':     return getMundoTemplate();
-            case 'jogadores': return getListTemplate('jogadores', 'Jogadores', '🎭', 'player', campaignData.players);
+            case 'jogadores': return getJogadoresTemplate();
             case 'npcs':      return getListTemplate('npcs', 'NPCs Criados', '🧙', 'npc', campaignData.npcs);
             case 'classes':   return getClassesTemplate();
             case 'armas':     return getListTemplate('armas', 'Fichas de Armas', '⚔️', 'weapon', campaignData.weapons);
             default:          return '';
         }
+    }
+
+    // --- Jogadores (Players) Tab ---
+    function getJogadoresTemplate() {
+        const items = campaignData.players;
+
+        if (items.length === 0) {
+            return `
+                <div class="list-section">
+                    <div class="list-section__toolbar">
+                        <div class="section-header" style="margin-bottom:0">
+                            <h3 class="section-header__title">Jogadores</h3>
+                        </div>
+                        <button class="btn btn--primary" id="btn-add-jogadores" data-type="jogadores">
+                            + Adicionar Jogador
+                        </button>
+                    </div>
+                    <div class="empty-state">
+                        <div class="empty-state__icon">🎭</div>
+                        <h4 class="empty-state__title">Nenhum jogador adicionado</h4>
+                        <p class="empty-state__desc">Adicione os jogadores que participarão desta campanha.</p>
+                        <button class="btn btn--primary" data-type="jogadores" data-action="add">
+                            + Adicionar Jogador
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="list-section">
+                <div class="list-section__toolbar">
+                    <div class="list-section__search">
+                        <span class="list-section__search-icon">🔍</span>
+                        <input type="text" class="list-section__search-input"
+                               placeholder="Buscar jogadores..."
+                               id="search-jogadores" />
+                    </div>
+                    <button class="btn btn--primary" id="btn-add-jogadores" data-type="jogadores">
+                        + Adicionar Jogador
+                    </button>
+                </div>
+                <div class="items-grid items-grid--players" id="grid-jogadores">
+                    ${items.map((item, index) => getPlayerCard(item, index)).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    // --- Player Card (Dark Fantasy Sheet) ---
+    function getPlayerCard(item, index) {
+        const attrs = [
+            { key: 'str', label: 'FOR' },
+            { key: 'dex', label: 'DES' },
+            { key: 'con', label: 'CON' },
+            { key: 'int', label: 'INT' },
+            { key: 'wis', label: 'SAB' },
+            { key: 'cha', label: 'CAR' },
+        ];
+
+        const charName = escapeHtml(item.character || item.name || 'Sem nome');
+        const race = escapeHtml(item.race || '');
+        const domain = escapeHtml(item.domain || '');
+        const level = escapeHtml(item.level || '1');
+        const className = escapeHtml(item.class || 'Aventureiro');
+        const conditions = escapeHtml(item.conditions || 'Nenhuma');
+        const resistances = escapeHtml(item.resistances || 'Nenhuma');
+
+        // Find max attribute value for highlighting
+        const attrValues = attrs.map(a => parseInt(item[a.key], 10) || 0);
+        const maxAttr = Math.max(...attrValues);
+
+        return `
+            <div class="player-sheet item-card" data-index="${index}" data-type="jogadores">
+                <div class="player-sheet__ornament-top"></div>
+
+                <div class="player-sheet__name">${charName}</div>
+
+                <div class="player-sheet__divider">
+                    <span class="player-sheet__divider-icon">⚜</span>
+                </div>
+
+                ${race ? `<div class="player-sheet__race">${race}</div>` : ''}
+
+                <div class="player-sheet__class-info">
+                    ${domain ? `<div class="player-sheet__domain">${domain}</div>` : ''}
+                    <div class="player-sheet__level">Nível ${level} ${className}</div>
+                </div>
+
+                <div class="player-sheet__stats">
+                    ${attrs.map(attr => {
+                        const val = parseInt(item[attr.key], 10) || 0;
+                        const isHighlight = val > 0 && val >= maxAttr;
+                        return `
+                            <div class="player-sheet__stat ${isHighlight ? 'player-sheet__stat--highlight' : ''}">
+                                <span class="player-sheet__stat-label">${attr.label}</span>
+                                <span class="player-sheet__stat-value">${val}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+
+                <div class="player-sheet__section">
+                    <div class="player-sheet__section-divider">
+                        <span class="player-sheet__section-title">Condições</span>
+                    </div>
+                    <div class="player-sheet__section-content">
+                        ${conditions !== 'Nenhuma' ? `<span class="player-sheet__condition-badge">🌿 ${conditions}</span>` : `<span class="player-sheet__section-empty">Nenhuma</span>`}
+                    </div>
+                </div>
+
+                <div class="player-sheet__section">
+                    <div class="player-sheet__section-divider">
+                        <span class="player-sheet__section-title">Resistências</span>
+                    </div>
+                    <div class="player-sheet__section-content">
+                        <span class="player-sheet__section-empty">${resistances}</span>
+                    </div>
+                </div>
+
+                <div class="player-sheet__ornament-bottom"></div>
+
+                <div class="item-card__footer">
+                    <button class="item-card__action" data-action="edit" data-type="jogadores" data-index="${index}">✏️ Editar</button>
+                    <button class="item-card__action item-card__action--delete" data-action="delete" data-type="jogadores" data-index="${index}">🗑️ Remover</button>
+                </div>
+            </div>
+        `;
     }
 
     // --- Mundo (World) Tab ---
@@ -528,8 +656,18 @@ const NovaCampanhaPage = (() => {
                 fields: [
                     { key: 'name', label: 'Nome do Jogador', type: 'text', placeholder: 'Ex: Pedro' },
                     { key: 'character', label: 'Nome do Personagem', type: 'text', placeholder: 'Ex: Thorin Escudo de Ferro' },
+                    { key: 'race', label: 'Raça', type: 'text', placeholder: 'Ex: Meio-elfo Altaneiro' },
                     { key: 'class', label: 'Classe', type: 'text', placeholder: 'Ex: Guerreiro' },
+                    { key: 'domain', label: 'Domínio / Subclasse', type: 'text', placeholder: 'Ex: Domínio da Luz' },
                     { key: 'level', label: 'Nível', type: 'number', placeholder: '1' },
+                    { key: 'str', label: 'Força (FOR)', type: 'number', placeholder: 'Ex: 12' },
+                    { key: 'dex', label: 'Destreza (DES)', type: 'number', placeholder: 'Ex: 14' },
+                    { key: 'con', label: 'Constituição (CON)', type: 'number', placeholder: 'Ex: 13' },
+                    { key: 'int', label: 'Inteligência (INT)', type: 'number', placeholder: 'Ex: 8' },
+                    { key: 'wis', label: 'Sabedoria (SAB)', type: 'number', placeholder: 'Ex: 17' },
+                    { key: 'cha', label: 'Carisma (CAR)', type: 'number', placeholder: 'Ex: 13' },
+                    { key: 'conditions', label: 'Condições', type: 'text', placeholder: 'Ex: Bênção de Silvanus' },
+                    { key: 'resistances', label: 'Resistências', type: 'text', placeholder: 'Ex: Nenhuma' },
                 ],
             },
             npcs: {
@@ -689,5 +827,6 @@ const NovaCampanhaPage = (() => {
 
     return {
         render,
+        getCampaignData: () => campaignData,
     };
 })();
