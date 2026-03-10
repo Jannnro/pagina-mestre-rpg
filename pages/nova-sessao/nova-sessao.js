@@ -1,7 +1,7 @@
 /**
  * nova-sessao.js - Sessão Page Module
  * Flow: Select Campaign → List/Create Sessions → Open Session (Notes, Fights, Player Sidebar)
- * Sessions are stored inside each campaign's data in localStorage.
+ * Sessions are stored inside each campaign's data in Supabase (async).
  */
 
 const NovaSessaoPage = (() => {
@@ -10,8 +10,8 @@ const NovaSessaoPage = (() => {
     const mainContent = document.getElementById('main-content');
 
     // --- State ---
-    let selectedCampaign = null;  // selected campaign object
-    let currentSession = null;    // current session being edited (or null = list)
+    let selectedCampaign = null;
+    let currentSession = null;
     let activeTab = 'anotacoes';
 
     const tabs = [
@@ -19,18 +19,16 @@ const NovaSessaoPage = (() => {
         { id: 'fights',    icon: '⚔️', label: 'Fights' },
     ];
 
-    const autoSave = App.debounce(() => {
+    const autoSave = App.debounce(async () => {
         if (selectedCampaign && currentSession) {
-            App.saveCampaign(selectedCampaign);
+            await App.saveCampaign(selectedCampaign);
         }
     }, 500);
 
     // ==============================
     //  VIEW 1: CAMPAIGN SELECTOR
     // ==============================
-    function getCampaignSelectorTemplate() {
-        const campaigns = App.loadCampaigns();
-
+    function getCampaignSelectorTemplate(campaigns) {
         return `
             <div class="sessao-header">
                 <button class="sessao-header__back" id="btn-back-mestrando" title="Voltar ao Mestrando">←</button>
@@ -69,7 +67,7 @@ const NovaSessaoPage = (() => {
     }
 
     // ==============================
-    //  VIEW 2: SESSION LIST (inside a campaign)
+    //  VIEW 2: SESSION LIST
     // ==============================
     function getSessionListTemplate() {
         const sessions = selectedCampaign.sessions || [];
@@ -292,7 +290,7 @@ const NovaSessaoPage = (() => {
     // ==============================
     //  RENDER
     // ==============================
-    function render() {
+    async function render() {
         if (!mainContent) return;
 
         if (currentSession) {
@@ -302,7 +300,8 @@ const NovaSessaoPage = (() => {
             mainContent.innerHTML = getSessionListTemplate();
             bindSessionListEvents();
         } else {
-            mainContent.innerHTML = getCampaignSelectorTemplate();
+            const campaigns = await App.loadCampaigns();
+            mainContent.innerHTML = getCampaignSelectorTemplate(campaigns);
             bindCampaignSelectorEvents();
         }
     }
@@ -317,8 +316,8 @@ const NovaSessaoPage = (() => {
         document.getElementById('btn-back-mestrando')?.addEventListener('click', () => App.navigateTo('mestrando'));
 
         document.querySelectorAll('.sessao-campaign-card').forEach(card => {
-            card.addEventListener('click', () => {
-                selectedCampaign = App.getCampaignById(card.dataset.id);
+            card.addEventListener('click', async () => {
+                selectedCampaign = await App.getCampaignById(card.dataset.id);
                 if (selectedCampaign) {
                     if (!selectedCampaign.sessions) selectedCampaign.sessions = [];
                     render();
@@ -335,7 +334,7 @@ const NovaSessaoPage = (() => {
         });
 
         [document.getElementById('btn-create-session'), document.getElementById('btn-create-session-empty')].forEach(btn => {
-            if (btn) btn.addEventListener('click', () => {
+            if (btn) btn.addEventListener('click', async () => {
                 const name = prompt('Nome da sessão:');
                 if (!name || !name.trim()) return;
                 if (!selectedCampaign.sessions) selectedCampaign.sessions = [];
@@ -346,7 +345,7 @@ const NovaSessaoPage = (() => {
                     fights: '',
                     createdAt: new Date().toISOString(),
                 });
-                App.saveCampaign(selectedCampaign);
+                await App.saveCampaign(selectedCampaign);
                 render();
             });
         });
@@ -363,12 +362,12 @@ const NovaSessaoPage = (() => {
         });
 
         document.querySelectorAll('.sessao-list-card__delete').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const idx = parseInt(btn.dataset.index, 10);
                 if (confirm('Excluir esta sessão?')) {
+                    const idx = parseInt(btn.dataset.index, 10);
                     selectedCampaign.sessions.splice(idx, 1);
-                    App.saveCampaign(selectedCampaign);
+                    await App.saveCampaign(selectedCampaign);
                     render();
                 }
             });
@@ -385,8 +384,8 @@ const NovaSessaoPage = (() => {
 
     // --- Detail View Events ---
     function bindDetailEvents() {
-        document.getElementById('btn-back-list')?.addEventListener('click', () => {
-            if (currentSession) App.saveCampaign(selectedCampaign);
+        document.getElementById('btn-back-list')?.addEventListener('click', async () => {
+            if (currentSession) await App.saveCampaign(selectedCampaign);
             currentSession = null;
             render();
         });

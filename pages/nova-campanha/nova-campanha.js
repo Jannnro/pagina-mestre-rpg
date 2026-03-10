@@ -25,9 +25,9 @@ const NovaCampanhaPage = (() => {
     // ==============================
     //  PERSISTENCE
     // ==============================
-    function save() {
+    async function save() {
         if (campaignData && campaignData.id) {
-            App.saveCampaign(campaignData);
+            await App.saveCampaign(campaignData);
         }
     }
 
@@ -913,15 +913,13 @@ const NovaCampanhaPage = (() => {
     // ==============================
     //  PAGE LIFECYCLE
     // ==============================
-    document.addEventListener('page:load', (e) => {
+    document.addEventListener('page:load', async (e) => {
         if (e.detail.page === 'nova-campanha') {
             const params = e.detail.params || {};
             if (params.id) {
-                // Load existing campaign
-                campaignData = App.getCampaignById(params.id);
+                campaignData = await App.getCampaignById(params.id);
             }
             if (!campaignData) {
-                // Should not happen if navigated correctly, but fallback
                 campaignData = {
                     id: App.generateId(),
                     name: 'Nova Campanha',
@@ -933,7 +931,7 @@ const NovaCampanhaPage = (() => {
                     sessions: [],
                     createdAt: new Date().toISOString(),
                 };
-                save();
+                await save();
             }
             activeTab = 'mundo';
             render();
