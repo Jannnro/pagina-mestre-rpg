@@ -53,6 +53,72 @@
     margin-top: var(--space-1);
 }
 
+/* --- Campaign Selector Grid --- */
+.sessao-campaign-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    animation: fade-in 0.5s ease forwards;
+}
+
+.sessao-campaign-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    animation: scale-in 0.4s ease forwards;
+}
+
+.sessao-campaign-card:hover {
+    border-color: var(--color-accent-gold);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-glow-gold);
+}
+
+.sessao-campaign-card__icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.sessao-campaign-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.sessao-campaign-card__name {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--color-text-heading);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sessao-campaign-card__meta {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    margin-top: var(--space-1);
+}
+
+.sessao-campaign-card__arrow {
+    font-size: var(--text-xl);
+    color: var(--color-accent-gold);
+    opacity: 0;
+    transition: opacity var(--transition-base), transform var(--transition-base);
+    flex-shrink: 0;
+}
+
+.sessao-campaign-card:hover .sessao-campaign-card__arrow {
+    opacity: 1;
+    transform: translateX(4px);
+}
+
 /* --- Main Layout: Content + Sidebar --- */
 .sessao-layout {
     display: flex;
@@ -590,6 +656,108 @@
 }
 
 /* =========================================
+   SESSION LIST VIEW
+   ========================================= */
+.sessao-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-6);
+    animation: fade-in 0.4s ease forwards;
+}
+
+.sessao-list-toolbar__count {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+}
+
+.sessao-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--space-5);
+    animation: fade-in 0.5s ease forwards;
+}
+
+.sessao-list-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all var(--transition-base);
+    cursor: pointer;
+    animation: scale-in 0.4s ease forwards;
+}
+
+.sessao-list-card:hover {
+    border-color: var(--color-border-hover);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-glow-gold);
+}
+
+.sessao-list-card__header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    background: linear-gradient(135deg, rgba(212, 168, 67, 0.06), rgba(212, 168, 67, 0.01));
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sessao-list-card__icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.sessao-list-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.sessao-list-card__name {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: 700;
+    color: var(--color-text-heading);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sessao-list-card__date {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+}
+
+.sessao-list-card__stats {
+    display: flex;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-5);
+    flex-wrap: wrap;
+}
+
+.sessao-list-card__stat {
+    font-size: var(--text-xs);
+    color: var(--color-text-secondary);
+}
+
+.sessao-list-card__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-5);
+    border-top: 1px solid var(--color-border);
+}
+
+.sessao-list-card__open {
+    flex: 1;
+    justify-content: center;
+}
+
+.sessao-list-card__delete {
+    flex-shrink: 0;
+}
+
+/* =========================================
    RESPONSIVE
    ========================================= */
 @media (max-width: 968px) {
@@ -621,6 +789,10 @@
             transform: translateY(0);
         }
     }
+
+    .sessao-list-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 640px) {
@@ -637,3 +809,4 @@
         min-height: 350px;
     }
 }
+
