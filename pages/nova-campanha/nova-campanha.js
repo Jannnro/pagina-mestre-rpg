@@ -933,7 +933,7 @@ const NovaCampanhaPage = (() => {
                 };
                 await save();
             }
-            activeTab = 'mundo';
+            activeTab = params.tab && tabs.some(t => t.id === params.tab) ? params.tab : 'mundo';
             render();
         }
     });
