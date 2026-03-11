@@ -1,37 +1,38 @@
 /**
- * app.js - Página do Mestre RPG
- * Core application logic and page routing.
+ * app.js - Main Application Module
+ * Handles page navigation and exposes shared helpers.
+ * Data operations delegate to DB (supabase.js) — all async.
  */
 
 const App = (() => {
     'use strict';
 
-    // --- State ---
-    let currentPage = 'mestrando';
-
     // --- DOM References ---
     const mainContent = document.getElementById('main-content');
     const navLinks = document.querySelectorAll('.navbar__link');
 
-    // --- Navigation ---
-    function navigateTo(pageName) {
-        currentPage = pageName;
+    // --- Navigation State ---
+    let currentPage = 'mestrando';
+    let currentParams = {};
 
-        // Update active link
+    // --- Navigation ---
+    function navigateTo(page, params = {}) {
+        currentPage = page;
+        currentParams = params;
+
+        // Update active nav link
         navLinks.forEach(link => {
-            link.classList.toggle('navbar__link--active', link.dataset.page === pageName);
+            link.classList.toggle('navbar__link--active', link.dataset.page === page);
         });
 
-        // Load the page
-        loadPage(pageName);
+        // Dispatch page load event
+        document.dispatchEvent(new CustomEvent('page:load', {
+            detail: { page, params },
+        }));
     }
 
-    function loadPage(pageName) {
-        if (!mainContent) return;
-
-        // Dispatch events for page modules to respond
-        const event = new CustomEvent('page:load', { detail: { page: pageName } });
-        document.dispatchEvent(event);
+    function getParams() {
+        return currentParams;
     }
 
     // --- Utility Functions ---
@@ -55,9 +56,25 @@ const App = (() => {
         };
     }
 
+    // --- Data Operations (async, delegated to DB/supabase.js) ---
+    async function loadCampaigns() {
+        return DB.loadCampaigns();
+    }
+
+    async function getCampaignById(id) {
+        return DB.getCampaignById(id);
+    }
+
+    async function saveCampaign(campaign) {
+        return DB.saveCampaign(campaign);
+    }
+
+    async function deleteCampaign(id) {
+        return DB.deleteCampaign(id);
+    }
+
     // --- Initialization ---
     function init() {
-        // Setup navigation click handlers
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -66,18 +83,21 @@ const App = (() => {
             });
         });
 
-        // Load default page
         navigateTo(currentPage);
     }
 
-    // Boot when DOM is ready
     document.addEventListener('DOMContentLoaded', init);
 
     // Public API
     return {
         navigateTo,
+        getParams,
         formatDate,
         generateId,
         debounce,
+        loadCampaigns,
+        getCampaignById,
+        saveCampaign,
+        deleteCampaign,
     };
 })();
