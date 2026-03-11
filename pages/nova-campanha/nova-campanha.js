@@ -1,7 +1,7 @@
 /**
- * nova-campanha.js - Nova Campanha Page Module
- * Handles the campaign creation/editing page with tabs for
- * World, Players, NPCs, Class Sheets, and Weapon Sheets.
+ * nova-campanha.js - Campaign Page Module
+ * Handles campaign editing with tabs for World, Sessions, Players, NPCs, Classes, Weapons.
+ * Persists data via localStorage through App helpers.
  */
 
 const NovaCampanhaPage = (() => {
@@ -10,37 +10,42 @@ const NovaCampanhaPage = (() => {
     const mainContent = document.getElementById('main-content');
 
     // --- Campaign State ---
-    let campaignData = {
-        name: '',
-        world: '',
-        players: [],
-        npcs: [],
-        classes: [],
-        weapons: [],
-    };
-
+    let campaignData = null;
     let activeTab = 'mundo';
 
     // --- Tabs Config ---
     const tabs = [
-        { id: 'mundo',    icon: '🌍', label: 'Mundo',            countKey: null },
-        { id: 'jogadores', icon: '🎭', label: 'Jogadores',       countKey: 'players' },
-        { id: 'npcs',     icon: '🧙', label: 'NPCs Criados',     countKey: 'npcs' },
-        { id: 'classes',  icon: '🛡️', label: 'Fichas de Classes', countKey: 'classes' },
-        { id: 'armas',    icon: '⚔️', label: 'Fichas de Armas',   countKey: 'weapons' },
+        { id: 'mundo',     icon: '🌍', label: 'Mundo',            countKey: null },
+        { id: 'jogadores', icon: '🎭', label: 'Jogadores',        countKey: 'players' },
+        { id: 'npcs',      icon: '🧙', label: 'NPCs Criados',     countKey: 'npcs' },
+        { id: 'classes',   icon: '🛡️', label: 'Fichas de Classes', countKey: 'classes' },
+        { id: 'armas',     icon: '⚔️', label: 'Fichas de Armas',   countKey: 'weapons' },
     ];
+
+    // ==============================
+    //  PERSISTENCE
+    // ==============================
+    async function save() {
+        if (campaignData && campaignData.id) {
+            await App.saveCampaign(campaignData);
+        }
+    }
+
+    const autoSave = App.debounce(() => save(), 500);
 
     // ==============================
     //  MAIN TEMPLATE
     // ==============================
     function getTemplate() {
+        if (!campaignData) return '<p>Campanha não encontrada.</p>';
+
         return `
             <!-- Page Header -->
             <div class="campanha-header">
                 <button class="campanha-header__back" id="btn-back-mestrando" title="Voltar ao Mestrando">←</button>
                 <div class="campanha-header__info">
-                    <h2 class="campanha-header__title">Nova Campanha</h2>
-                    <p class="campanha-header__subtitle">Configure os detalhes da sua nova aventura épica.</p>
+                    <h2 class="campanha-header__title">${escapeHtml(campaignData.name)}</h2>
+                    <p class="campanha-header__subtitle">Configure os detalhes da sua aventura épica.</p>
                 </div>
             </div>
 
@@ -63,7 +68,7 @@ const NovaCampanhaPage = (() => {
                             data-tab="${tab.id}" id="tab-${tab.id}">
                         <span class="campanha-tab__icon">${tab.icon}</span>
                         ${tab.label}
-                        ${tab.countKey ? `<span class="campanha-tab__count">${campaignData[tab.countKey].length}</span>` : ''}
+                        ${tab.countKey ? `<span class="campanha-tab__count">${(campaignData[tab.countKey] || []).length}</span>` : ''}
                     </button>
                 `).join('')}
             </div>
@@ -87,6 +92,117 @@ const NovaCampanhaPage = (() => {
             case 'armas':     return getListTemplate('armas', 'Fichas de Armas', '⚔️', 'weapon', campaignData.weapons);
             default:          return '';
         }
+    }
+
+    // --- Mundo (World) Tab ---
+    function getMundoTemplate() {
+        return `
+            <div class="mundo-section">
+                <div class="section-header">
+                    <h3 class="section-header__title">Sobre o Mundo</h3>
+                    <p class="section-header__subtitle">Descreva o cenário, a história e as regras do seu mundo.</p>
+                </div>
+
+                <div class="mundo-editor">
+                    <textarea
+                        id="world-textarea"
+                        class="mundo-editor__textarea"
+                        placeholder="Descreva o mundo da sua campanha aqui...&#10;&#10;Exemplo: Em um continente devastado por guerras ancestrais, cinco reinos disputam o controle de artefatos mágicos que podem alterar o equilíbrio do poder..."
+                        maxlength="10000"
+                    >${escapeHtml(campaignData.world)}</textarea>
+                    <span class="mundo-editor__count" id="world-char-count">${campaignData.world.length}/10000</span>
+                </div>
+
+                <div class="mundo-tips">
+                    <div class="mundo-tip">
+                        <div class="mundo-tip__icon">🗺️</div>
+                        <div class="mundo-tip__title">Geografia</div>
+                        <div class="mundo-tip__desc">Descreva os continentes, reinos, cidades e locais importantes.</div>
+                    </div>
+                    <div class="mundo-tip">
+                        <div class="mundo-tip__icon">📖</div>
+                        <div class="mundo-tip__title">História</div>
+                        <div class="mundo-tip__desc">Conte os eventos passados que moldaram o mundo atual.</div>
+                    </div>
+                    <div class="mundo-tip">
+                        <div class="mundo-tip__icon">⚡</div>
+                        <div class="mundo-tip__title">Regras & Magia</div>
+                        <div class="mundo-tip__desc">Defina o sistema de magia, divindades e leis do universo.</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- Sessões Tab ---
+    function getSessoesTemplate() {
+        const sessions = campaignData.sessions || [];
+
+        if (sessions.length === 0) {
+            return `
+                <div class="list-section">
+                    <div class="list-section__toolbar">
+                        <div class="section-header" style="margin-bottom:0">
+                            <h3 class="section-header__title">Sessões</h3>
+                        </div>
+                        <button class="btn btn--primary" id="btn-add-sessao">
+                            + Nova Sessão
+                        </button>
+                    </div>
+                    <div class="empty-state">
+                        <div class="empty-state__icon">📋</div>
+                        <h4 class="empty-state__title">Nenhuma sessão criada</h4>
+                        <p class="empty-state__desc">Crie sessões para registrar anotações e combates da campanha.</p>
+                        <button class="btn btn--primary" id="btn-add-sessao-empty">
+                            + Nova Sessão
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="list-section">
+                <div class="list-section__toolbar">
+                    <div class="section-header" style="margin-bottom:0">
+                        <h3 class="section-header__title">Sessões</h3>
+                    </div>
+                    <button class="btn btn--primary" id="btn-add-sessao">
+                        + Nova Sessão
+                    </button>
+                </div>
+                <div class="items-grid items-grid--sessoes" id="grid-sessoes">
+                    ${sessions.map((s, i) => getSessaoCard(s, i)).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function getSessaoCard(session, index) {
+        const name = escapeHtml(session.name || 'Sessão sem nome');
+        const date = session.createdAt ? App.formatDate(new Date(session.createdAt)) : '';
+        const notesLen = (session.notes || '').length;
+        const fightsLen = (session.fights || '').length;
+
+        return `
+            <div class="sessao-card item-card" data-index="${index}">
+                <div class="sessao-card__header">
+                    <span class="sessao-card__icon">📋</span>
+                    <div class="sessao-card__info">
+                        <div class="sessao-card__name">${name}</div>
+                        ${date ? `<div class="sessao-card__date">${date}</div>` : ''}
+                    </div>
+                </div>
+                <div class="sessao-card__stats">
+                    <span class="sessao-card__stat">📝 ${notesLen > 0 ? notesLen + ' chars' : 'Sem anotações'}</span>
+                    <span class="sessao-card__stat">⚔️ ${fightsLen > 0 ? fightsLen + ' chars' : 'Sem combates'}</span>
+                </div>
+                <div class="item-card__footer">
+                    <button class="item-card__action" data-action="open-sessao" data-index="${index}">📂 Abrir</button>
+                    <button class="item-card__action item-card__action--delete" data-action="delete-sessao" data-index="${index}">🗑️ Remover</button>
+                </div>
+            </div>
+        `;
     }
 
     // --- Jogadores (Players) Tab ---
@@ -155,7 +271,6 @@ const NovaCampanhaPage = (() => {
         const conditions = escapeHtml(item.conditions || 'Nenhuma');
         const resistances = escapeHtml(item.resistances || 'Nenhuma');
 
-        // Find max attribute value for highlighting
         const attrValues = attrs.map(a => parseInt(item[a.key], 10) || 0);
         const maxAttr = Math.max(...attrValues);
 
@@ -212,46 +327,6 @@ const NovaCampanhaPage = (() => {
                 <div class="item-card__footer">
                     <button class="item-card__action" data-action="edit" data-type="jogadores" data-index="${index}">✏️ Editar</button>
                     <button class="item-card__action item-card__action--delete" data-action="delete" data-type="jogadores" data-index="${index}">🗑️ Remover</button>
-                </div>
-            </div>
-        `;
-    }
-
-    // --- Mundo (World) Tab ---
-    function getMundoTemplate() {
-        return `
-            <div class="mundo-section">
-                <div class="section-header">
-                    <h3 class="section-header__title">Sobre o Mundo</h3>
-                    <p class="section-header__subtitle">Descreva o cenário, a história e as regras do seu mundo.</p>
-                </div>
-
-                <div class="mundo-editor">
-                    <textarea
-                        id="world-textarea"
-                        class="mundo-editor__textarea"
-                        placeholder="Descreva o mundo da sua campanha aqui...&#10;&#10;Exemplo: Em um continente devastado por guerras ancestrais, cinco reinos disputam o controle de artefatos mágicos que podem alterar o equilíbrio do poder..."
-                        maxlength="10000"
-                    >${escapeHtml(campaignData.world)}</textarea>
-                    <span class="mundo-editor__count" id="world-char-count">${campaignData.world.length}/10000</span>
-                </div>
-
-                <div class="mundo-tips">
-                    <div class="mundo-tip">
-                        <div class="mundo-tip__icon">🗺️</div>
-                        <div class="mundo-tip__title">Geografia</div>
-                        <div class="mundo-tip__desc">Descreva os continentes, reinos, cidades e locais importantes.</div>
-                    </div>
-                    <div class="mundo-tip">
-                        <div class="mundo-tip__icon">📖</div>
-                        <div class="mundo-tip__title">História</div>
-                        <div class="mundo-tip__desc">Conte os eventos passados que moldaram o mundo atual.</div>
-                    </div>
-                    <div class="mundo-tip">
-                        <div class="mundo-tip__icon">⚡</div>
-                        <div class="mundo-tip__title">Regras & Magia</div>
-                        <div class="mundo-tip__desc">Defina o sistema de magia, divindades e leis do universo.</div>
-                    </div>
                 </div>
             </div>
         `;
@@ -372,46 +447,20 @@ const NovaCampanhaPage = (() => {
         return 'stat-low';
     }
 
-    // --- Generic List Tab (Players, NPCs, Weapons) ---
+    // --- Generic List Tab (NPCs, Weapons) ---
     function getListTemplate(type, title, icon, avatarType, items) {
         const configs = {
-            jogadores: {
-                addLabel: 'Adicionar Jogador',
-                emptyIcon: '🎭',
-                emptyTitle: 'Nenhum jogador adicionado',
-                emptyDesc: 'Adicione os jogadores que participarão desta campanha.',
-                fields: [
-                    { key: 'name', label: 'Nome do Jogador', type: 'text', placeholder: 'Ex: Pedro' },
-                    { key: 'character', label: 'Nome do Personagem', type: 'text', placeholder: 'Ex: Thorin Escudo de Ferro' },
-                    { key: 'class', label: 'Classe', type: 'text', placeholder: 'Ex: Guerreiro' },
-                    { key: 'level', label: 'Nível', type: 'number', placeholder: '1' },
-                ],
-            },
             npcs: {
                 addLabel: 'Criar NPC',
                 emptyIcon: '🧙',
                 emptyTitle: 'Nenhum NPC criado',
                 emptyDesc: 'Crie NPCs para enriquecer a narrativa da campanha.',
-                fields: [
-                    { key: 'name', label: 'Nome do NPC', type: 'text', placeholder: 'Ex: Elara, a Sábia' },
-                    { key: 'role', label: 'Papel', type: 'text', placeholder: 'Ex: Comerciante, Vilão, Aliado...' },
-                    { key: 'location', label: 'Localização', type: 'text', placeholder: 'Ex: Taverna do Dragão Dourado' },
-                    { key: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Aparência, personalidade, motivações...' },
-                ],
             },
-
             armas: {
                 addLabel: 'Adicionar Arma',
                 emptyIcon: '⚔️',
                 emptyTitle: 'Nenhuma ficha de arma',
                 emptyDesc: 'Crie fichas para as armas do seu mundo.',
-                fields: [
-                    { key: 'name', label: 'Nome da Arma', type: 'text', placeholder: 'Ex: Espada Longa Élfica' },
-                    { key: 'damage', label: 'Dano', type: 'text', placeholder: 'Ex: 1d8 + 2 cortante' },
-                    { key: 'weight', label: 'Peso', type: 'text', placeholder: 'Ex: 1.5 kg' },
-                    { key: 'properties', label: 'Propriedades', type: 'text', placeholder: 'Ex: Versátil, Mágica' },
-                    { key: 'description', label: 'Descrição', type: 'textarea', placeholder: 'História, efeitos especiais...' },
-                ],
             },
         };
 
@@ -462,27 +511,15 @@ const NovaCampanhaPage = (() => {
 
     // --- Item Card ---
     function getItemCard(item, index, type, avatarType) {
-        const iconMap = {
-            player: '🎭',
-            npc: '🧙',
-            class: '🛡️',
-            weapon: '⚔️',
-        };
-
+        const iconMap = { npc: '🧙', weapon: '⚔️' };
         const detailMap = {
-            player: item.character ? `${item.character} — ${item.class || 'Sem classe'} Nv.${item.level || 1}` : '',
             npc: item.role ? `${item.role}${item.location ? ' • ' + item.location : ''}` : '',
-            class: item.hitDice ? `Dado de Vida: ${item.hitDice}${item.primaryAbility ? ' • ' + item.primaryAbility : ''}` : '',
             weapon: item.damage ? `Dano: ${item.damage}${item.weight ? ' • ' + item.weight : ''}` : '',
         };
-
         const badgeMap = {
-            player: { class: 'badge--purple', label: 'Jogador' },
             npc: { class: 'badge--gold', label: 'NPC' },
-            class: { class: 'badge--emerald', label: 'Classe' },
             weapon: { class: 'badge--crimson', label: 'Arma' },
         };
-
         const badge = badgeMap[avatarType];
 
         return `
@@ -567,7 +604,7 @@ const NovaCampanhaPage = (() => {
             if (tab.countKey) {
                 const countEl = document.querySelector(`#tab-${tab.id} .campanha-tab__count`);
                 if (countEl) {
-                    countEl.textContent = campaignData[tab.countKey].length;
+                    countEl.textContent = (campaignData[tab.countKey] || []).length;
                 }
             }
         });
@@ -577,7 +614,10 @@ const NovaCampanhaPage = (() => {
         // Back button
         const backBtn = document.getElementById('btn-back-mestrando');
         if (backBtn) {
-            backBtn.addEventListener('click', () => App.navigateTo('mestrando'));
+            backBtn.addEventListener('click', () => {
+                save();
+                App.navigateTo('mestrando');
+            });
         }
 
         // Campaign name
@@ -585,6 +625,10 @@ const NovaCampanhaPage = (() => {
         if (nameInput) {
             nameInput.addEventListener('input', (e) => {
                 campaignData.name = e.target.value;
+                // Update header title live
+                const titleEl = document.querySelector('.campanha-header__title');
+                if (titleEl) titleEl.textContent = e.target.value || 'Nova Campanha';
+                autoSave();
             });
         }
 
@@ -609,14 +653,48 @@ const NovaCampanhaPage = (() => {
                 campaignData.world = e.target.value;
                 const countEl = document.getElementById('world-char-count');
                 if (countEl) countEl.textContent = `${e.target.value.length}/10000`;
+                autoSave();
             });
         }
 
-        // Add buttons
+        // Session buttons
+        const addSessaoBtn = document.getElementById('btn-add-sessao');
+        const addSessaoEmptyBtn = document.getElementById('btn-add-sessao-empty');
+        [addSessaoBtn, addSessaoEmptyBtn].forEach(btn => {
+            if (btn) {
+                btn.addEventListener('click', () => createSession());
+            }
+        });
+
+        // Open session
+        document.querySelectorAll('[data-action="open-sessao"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.dataset.index, 10);
+                const session = campaignData.sessions[index];
+                if (session) {
+                    save();
+                    App.navigateTo('nova-sessao', { campaignId: campaignData.id, sessionIndex: index });
+                }
+            });
+        });
+
+        // Delete session
+        document.querySelectorAll('[data-action="delete-sessao"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.dataset.index, 10);
+                if (index >= 0 && index < campaignData.sessions.length) {
+                    campaignData.sessions.splice(index, 1);
+                    save();
+                    renderTabContent();
+                }
+            });
+        });
+
+        // Add buttons (generic items)
         document.querySelectorAll('[data-action="add"], [id^="btn-add-"]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const type = btn.dataset.type;
-                openModal(type);
+                if (type) openModal(type);
             });
         });
 
@@ -644,6 +722,28 @@ const NovaCampanhaPage = (() => {
                 filterItems(e.target.id.replace('search-', ''), e.target.value);
             }, 200));
         });
+    }
+
+    // ==============================
+    //  SESSION CREATION
+    // ==============================
+    function createSession() {
+        const name = prompt('Nome da sessão:');
+        if (!name || !name.trim()) return;
+
+        if (!campaignData.sessions) campaignData.sessions = [];
+
+        const session = {
+            id: App.generateId(),
+            name: name.trim(),
+            notes: '',
+            fights: '',
+            createdAt: new Date().toISOString(),
+        };
+
+        campaignData.sessions.push(session);
+        save();
+        renderTabContent();
     }
 
     // ==============================
@@ -713,22 +813,18 @@ const NovaCampanhaPage = (() => {
         const config = getFieldsConfig(type);
         if (!config) return;
 
-        // Insert modal into DOM
         const modalHtml = getModalTemplate(config.title, type, config.fields, editIndex);
         const container = document.createElement('div');
         container.id = 'modal-container';
         container.innerHTML = modalHtml;
         document.body.appendChild(container);
 
-        // Bind modal events
         const overlay = document.getElementById('modal-overlay');
         const closeBtn = document.getElementById('modal-close');
         const cancelBtn = document.getElementById('modal-cancel');
         const form = document.getElementById('modal-form');
 
-        const closeModal = () => {
-            container.remove();
-        };
+        const closeModal = () => { container.remove(); };
 
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) closeModal();
@@ -749,7 +845,6 @@ const NovaCampanhaPage = (() => {
             });
 
             if (!data.name) {
-                // Highlight name field
                 const nameField = document.getElementById('field-name');
                 if (nameField) {
                     nameField.style.borderColor = 'var(--color-accent-crimson)';
@@ -759,19 +854,17 @@ const NovaCampanhaPage = (() => {
             }
 
             if (formIndex !== '') {
-                // Edit
                 const items = getItemsArray(formType);
                 items[parseInt(formIndex, 10)] = { ...items[parseInt(formIndex, 10)], ...data };
             } else {
-                // Add
                 getItemsArray(formType).push(data);
             }
 
             closeModal();
+            save();
             renderTabContent();
         });
 
-        // Focus first field
         const firstField = document.getElementById(`field-${config.fields[0].key}`);
         if (firstField) setTimeout(() => firstField.focus(), 100);
     }
@@ -793,6 +886,7 @@ const NovaCampanhaPage = (() => {
         const items = getItemsArray(type);
         if (index >= 0 && index < items.length) {
             items.splice(index, 1);
+            save();
             renderTabContent();
         }
     }
@@ -803,7 +897,7 @@ const NovaCampanhaPage = (() => {
         const cards = grid.querySelectorAll('.item-card');
         const q = query.toLowerCase();
         cards.forEach(card => {
-            const name = card.querySelector('.item-card__name')?.textContent.toLowerCase() || '';
+            const name = card.querySelector('.item-card__name, .player-sheet__name, .class-card__name')?.textContent.toLowerCase() || '';
             const detail = card.querySelector('.item-card__detail')?.textContent.toLowerCase() || '';
             const visible = name.includes(q) || detail.includes(q);
             card.style.display = visible ? '' : 'none';
@@ -819,8 +913,27 @@ const NovaCampanhaPage = (() => {
     // ==============================
     //  PAGE LIFECYCLE
     // ==============================
-    document.addEventListener('page:load', (e) => {
+    document.addEventListener('page:load', async (e) => {
         if (e.detail.page === 'nova-campanha') {
+            const params = e.detail.params || {};
+            if (params.id) {
+                campaignData = await App.getCampaignById(params.id);
+            }
+            if (!campaignData) {
+                campaignData = {
+                    id: App.generateId(),
+                    name: 'Nova Campanha',
+                    world: '',
+                    players: [],
+                    npcs: [],
+                    classes: [],
+                    weapons: [],
+                    sessions: [],
+                    createdAt: new Date().toISOString(),
+                };
+                await save();
+            }
+            activeTab = 'mundo';
             render();
         }
     });

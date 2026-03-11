@@ -1,6 +1,8 @@
 /**
  * mestrando.js - Mestrando Page Module
  * Handles the "Mestrando" (Game Master Dashboard) page.
+ * Shows campaign list, stats, and quick actions.
+ * All data operations are async (Supabase).
  */
 
 const MestrandoPage = (() => {
@@ -9,9 +11,12 @@ const MestrandoPage = (() => {
     const mainContent = document.getElementById('main-content');
 
     // --- Page Template ---
-    function getTemplate() {
+    function getTemplate(campaigns) {
+        const totalSessions = campaigns.reduce((sum, c) => sum + (c.sessions || []).length, 0);
+        const totalNPCs = campaigns.reduce((sum, c) => sum + (c.npcs || []).length, 0);
+        const totalPlayers = campaigns.reduce((sum, c) => sum + (c.players || []).length, 0);
+
         return `
-            <!-- Hero Section -->
             <section class="mestrando-hero" id="mestrando-hero">
                 <div class="mestrando-hero__icon">🏰</div>
                 <h2 class="mestrando-hero__title">Mestrando</h2>
@@ -20,35 +25,33 @@ const MestrandoPage = (() => {
                 </p>
             </section>
 
-            <!-- Dashboard Stats -->
             <section class="mestrando-stats" id="mestrando-stats">
                 <div class="card" style="--i: 0">
                     <div class="stat">
-                        <div class="stat__value" id="stat-campaigns">0</div>
+                        <div class="stat__value">${campaigns.length}</div>
                         <div class="stat__label">Campanhas</div>
                     </div>
                 </div>
                 <div class="card" style="--i: 1">
                     <div class="stat">
-                        <div class="stat__value" id="stat-sessions">0</div>
+                        <div class="stat__value">${totalSessions}</div>
                         <div class="stat__label">Sessões</div>
                     </div>
                 </div>
                 <div class="card" style="--i: 2">
                     <div class="stat">
-                        <div class="stat__value" id="stat-npcs">0</div>
+                        <div class="stat__value">${totalNPCs}</div>
                         <div class="stat__label">NPCs</div>
                     </div>
                 </div>
                 <div class="card" style="--i: 3">
                     <div class="stat">
-                        <div class="stat__value" id="stat-maps">0</div>
-                        <div class="stat__label">Mapas</div>
+                        <div class="stat__value">${totalPlayers}</div>
+                        <div class="stat__label">Jogadores</div>
                     </div>
                 </div>
             </section>
 
-            <!-- Quick Actions -->
             <section class="mestrando-actions" id="mestrando-actions">
                 <div class="section-header">
                     <h3 class="section-header__title">Ações Rápidas</h3>
@@ -64,9 +67,9 @@ const MestrandoPage = (() => {
                     </div>
                     <div class="mestrando-action-card" style="--i: 1" id="action-new-session">
                         <div class="mestrando-action-card__icon">⚔️</div>
-                        <h4 class="mestrando-action-card__title">Nova Sessão</h4>
+                        <h4 class="mestrando-action-card__title">Sessão</h4>
                         <p class="mestrando-action-card__desc">
-                            Planeje e registre uma nova sessão de jogo.
+                            Gerencie e registre suas sessões de jogo.
                         </p>
                     </div>
                     <div class="mestrando-action-card" style="--i: 2" id="action-create-npc">
@@ -79,107 +82,135 @@ const MestrandoPage = (() => {
                 </div>
             </section>
 
-            <!-- Recent Activity -->
-            <section class="mestrando-recent" id="mestrando-recent">
+            <section class="mestrando-campanhas" id="mestrando-campanhas">
                 <div class="section-header">
-                    <h3 class="section-header__title">Atividade Recente</h3>
-                    <p class="section-header__subtitle">Suas últimas ações e eventos.</p>
+                    <h3 class="section-header__title">Minhas Campanhas</h3>
+                    <p class="section-header__subtitle">Suas campanhas salvas. Clique para abrir.</p>
                 </div>
-                <div class="mestrando-recent__list" id="recent-list">
-                    <div class="mestrando-recent__item" style="--i: 0">
-                        <span class="mestrando-recent__item-icon">🗺️</span>
-                        <div class="mestrando-recent__item-info">
-                            <div class="mestrando-recent__item-title">Nenhuma atividade registrada</div>
-                            <div class="mestrando-recent__item-meta">Comece criando sua primeira campanha!</div>
+                ${campaigns.length > 0
+                    ? `<div class="mestrando-campanhas__grid">
+                        ${campaigns.map(c => getCampaignCard(c)).join('')}
+                       </div>`
+                    : `<div class="mestrando-campanhas__empty">
+                        <div class="empty-state">
+                            <div class="empty-state__icon">📜</div>
+                            <h4 class="empty-state__title">Nenhuma campanha criada</h4>
+                            <p class="empty-state__desc">Crie sua primeira campanha usando o botão acima!</p>
                         </div>
-                        <span class="badge badge--gold mestrando-recent__item-badge">Novo</span>
-                    </div>
-                </div>
+                       </div>`
+                }
             </section>
         `;
     }
 
-    // --- Render Page ---
-    function render() {
+    function getCampaignCard(campaign) {
+        const name = campaign.name || 'Sem nome';
+        const playersCount = (campaign.players || []).length;
+        const sessionsCount = (campaign.sessions || []).length;
+        const npcsCount = (campaign.npcs || []).length;
+        const date = campaign.createdAt ? App.formatDate(new Date(campaign.createdAt)) : '';
+
+        return `
+            <div class="campanha-card" data-id="${campaign.id}">
+                <div class="campanha-card__header">
+                    <span class="campanha-card__icon">📜</span>
+                    <div class="campanha-card__info">
+                        <h4 class="campanha-card__name">${escapeHtml(name)}</h4>
+                        ${date ? `<span class="campanha-card__date">Criada em ${date}</span>` : ''}
+                    </div>
+                </div>
+                <div class="campanha-card__stats">
+                    <span class="campanha-card__stat">🎭 ${playersCount} jogadores</span>
+                    <span class="campanha-card__stat">📋 ${sessionsCount} sessões</span>
+                    <span class="campanha-card__stat">🧙 ${npcsCount} NPCs</span>
+                </div>
+                <div class="campanha-card__actions">
+                    <button class="btn btn--primary campanha-card__open" data-id="${campaign.id}">📂 Abrir</button>
+                    <button class="btn btn--ghost campanha-card__delete" data-id="${campaign.id}" title="Excluir campanha">🗑️</button>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- Render Page (async) ---
+    async function render() {
         if (!mainContent) return;
-        mainContent.innerHTML = getTemplate();
-        animateStats();
+        const campaigns = await App.loadCampaigns();
+        mainContent.innerHTML = getTemplate(campaigns);
         bindEvents();
-    }
-
-    // --- Animate Stat Counters ---
-    function animateStats() {
-        const stats = {
-            'stat-campaigns': 0,
-            'stat-sessions': 0,
-            'stat-npcs': 0,
-            'stat-maps': 0,
-        };
-
-        Object.entries(stats).forEach(([id, target]) => {
-            const el = document.getElementById(id);
-            if (el) {
-                animateCounter(el, 0, target, 800);
-            }
-        });
-    }
-
-    function animateCounter(element, start, end, duration) {
-        const range = end - start;
-        if (range === 0) {
-            element.textContent = end;
-            return;
-        }
-
-        let startTime = null;
-
-        function step(timestamp) {
-            if (!startTime) startTime = timestamp;
-            const progress = Math.min((timestamp - startTime) / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-            element.textContent = Math.floor(start + range * eased);
-            if (progress < 1) requestAnimationFrame(step);
-        }
-
-        requestAnimationFrame(step);
     }
 
     // --- Event Bindings ---
     function bindEvents() {
-        const actionCards = document.querySelectorAll('.mestrando-action-card');
-        actionCards.forEach(card => {
+        document.querySelectorAll('.mestrando-action-card').forEach(card => {
+            card.addEventListener('click', () => handleAction(card.id));
+        });
+
+        document.querySelectorAll('.campanha-card__open').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                App.navigateTo('nova-campanha', { id: btn.dataset.id });
+            });
+        });
+
+        document.querySelectorAll('.campanha-card').forEach(card => {
             card.addEventListener('click', () => {
-                const id = card.id;
-                handleAction(id);
+                App.navigateTo('nova-campanha', { id: card.dataset.id });
+            });
+        });
+
+        document.querySelectorAll('.campanha-card__delete').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm('Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.')) {
+                    await App.deleteCampaign(btn.dataset.id);
+                    render();
+                }
             });
         });
     }
 
-    function handleAction(actionId) {
+    async function handleAction(actionId) {
         switch (actionId) {
-            case 'action-new-campaign':
-                App.navigateTo('nova-campanha');
+            case 'action-new-campaign': {
+                const name = prompt('Nome da nova campanha:');
+                if (!name || !name.trim()) return;
+
+                const campaign = {
+                    id: App.generateId(),
+                    name: name.trim(),
+                    world: '',
+                    players: [],
+                    npcs: [],
+                    classes: [],
+                    weapons: [],
+                    sessions: [],
+                    createdAt: new Date().toISOString(),
+                };
+                await App.saveCampaign(campaign);
+                App.navigateTo('nova-campanha', { id: campaign.id });
                 break;
+            }
             case 'action-new-session':
                 App.navigateTo('nova-sessao');
                 break;
             case 'action-create-npc':
                 console.log('[Mestrando] Criar NPC - em construção');
                 break;
-            default:
-                console.log('[Mestrando] Ação desconhecida:', actionId);
         }
     }
 
-    // --- Listen for page load events ---
+    function escapeHtml(text) {
+        if (!text) return '';
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return String(text).replace(/[&<>"']/g, c => map[c]);
+    }
+
     document.addEventListener('page:load', (e) => {
         if (e.detail.page === 'mestrando') {
             render();
         }
     });
 
-    // Public API
-    return {
-        render,
-    };
+    return { render };
 })();
